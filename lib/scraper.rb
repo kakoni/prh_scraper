@@ -1,11 +1,26 @@
 require 'net/http'
 require 'json'
-require 'pstore'
+require 'active_record'
+require 'company'
 
 class Scraper
 
   def initialize
-    @store = PStore.new('eka.pstore')
+    @connection = ActiveRecord::Base.establish_connection(
+      adapter: "postgresql",
+      database: "prh"
+    )
+    ActiveRecord::Base.logger = Logger.new(STDERR)
+    create_db unless ActiveRecord::Base.connection.table_exists? 'companies'
+  end
+
+  def create_db
+    ActiveRecord::Schema.define do
+      create_table :companies do |table|
+        table.column :business_id, :string, null: false
+        table.column :data, :jsonb, null: false, default: {}
+      end
+    end
   end
 
   def save_business(business_id, uri)
@@ -13,9 +28,7 @@ class Scraper
     res = Net::HTTP.get_response(uri)
     json = JSON.parse(res.body)
     puts "storing #{business_id}"
-    @store.transaction do
-      @store[business_id] = json['results'][0]
-    end
+    Company.create!(business_id: business_id, data: json['results'][0])
   end
 
   def process_results(results)
@@ -29,8 +42,8 @@ class Scraper
 
   def foo
     uri = URI('http://avoindata.prh.fi:80/bis/v1')
-    params = { totalResults: true, maxResults: 1000, resultsFrom: 0, companyRegistrationFrom: '1970-01-01'}
-    #params = { totalResults: true, maxResults: 10, resultsFrom: 250, companyRegistrationFrom: '2016-02-28'}
+    #params = { totalResults: true, maxResults: 1000, resultsFrom: 0, companyRegistrationFrom: '1970-01-01'}
+    params = { totalResults: true, maxResults: 10, resultsFrom: 250, companyRegistrationFrom: '2016-02-28'}
     uri.query = URI.encode_www_form(params)
 
     while true do
