@@ -20,6 +20,9 @@ GEM
     byebug (8.2.2)
     i18n (0.7.0)
     json (1.8.3)
+    jsonb_accessor (0.3.1)
+      activerecord (>= 4.2.1)
+      pg
     minitest (5.8.4)
     minitest-reporters (1.1.0)
       ansi
@@ -39,6 +42,7 @@ PLATFORMS
 DEPENDENCIES
   activerecord
   byebug
+  jsonb_accessor
   minitest
   minitest-reporters
   pg

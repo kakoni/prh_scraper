@@ -42,21 +42,32 @@ class Scraper
 
   def foo
     uri = URI('http://avoindata.prh.fi:80/bis/v1')
+    end_date = Company.last.registration_date.to_s
+    start_date = (end_date - 1.day).to_s
     #params = { totalResults: true, maxResults: 1000, resultsFrom: 0, companyRegistrationFrom: '1970-01-01'}
-    params = { totalResults: true, maxResults: 10, resultsFrom: 250, companyRegistrationFrom: '2016-02-28'}
+    params = { totalResults: true, maxResults: 1000, resultsFrom: 0, companyRegistrationFrom: start_date, companyRegistrationTo: end_date}
     uri.query = URI.encode_www_form(params)
 
-    while true do
+    while params[:companyRegistrationFrom] !== '1970-01-01'
       puts "fetching: #{uri}"
       res = Net::HTTP.get_response(uri)
       json = JSON.parse(res.body)
-      next_uri = json['nextResultsUri']
       process_results(json['results'])
-      break unless next_uri
-      uri = URI(next_uri)
+
+      if json['nextResultsUri']
+        uri = URI(json['nextResultsUri'])
+      else
+        uri = URI('http://avoindata.prh.fi:80/bis/v1')
+        params = { totalResults: true, maxResults: 1000, resultsFrom: 0 }
+        params[:companyRegistrationTo] = params[:companyRegistrationFrom]
+        params[:companyRegistrationFrom] = (Date.parse(params[:companyRegistrationTo]) - 1.day).to_s
+        uri.query = URI.encode_www_form(params)
+      end
     end
 
     puts 'exiting scraper'
   end
-
 end
+
+$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), 'lib'))
+Scraper.new.foo
