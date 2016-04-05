@@ -2,6 +2,7 @@ require 'net/http'
 require 'json'
 require 'active_record'
 require 'company'
+require 'date'
 
 class Scraper
 
@@ -40,16 +41,22 @@ class Scraper
     end
   end
 
+  def process_results2(results)
+    results.each do |result|
+      puts result['businessId']
+      sleep 0.2
+    end
+  end
+
   def foo
     uri = URI('http://avoindata.prh.fi:80/bis/v1')
     end_date = Company.last.registration_date.to_s
     start_date = (end_date - 1.day).to_s
-    #params = { totalResults: true, maxResults: 1000, resultsFrom: 0, companyRegistrationFrom: '1970-01-01'}
-    params = { totalResults: true, maxResults: 1000, resultsFrom: 0, companyRegistrationFrom: start_date, companyRegistrationTo: end_date}
+    params = { totalResults: false, maxResults: 1000, resultsFrom: 0, companyRegistrationFrom: '1800-01-01'}
+    #params = { totalResults: true, maxResults: 1000, resultsFrom: 0, companyRegistrationFrom: start_date, companyRegistrationTo: end_date}
     uri.query = URI.encode_www_form(params)
 
-    while params[:companyRegistrationFrom] !== '1970-01-01'
-      puts "fetching: #{uri}"
+    while params[:companyRegistrationTo] != Date.today.to_s
       res = Net::HTTP.get_response(uri)
       json = JSON.parse(res.body)
       process_results(json['results'])
@@ -57,10 +64,10 @@ class Scraper
       if json['nextResultsUri']
         uri = URI(json['nextResultsUri'])
       else
+        start_date =  params[:companyRegistrationTo]
+        end_date = (Date.parse(start_date) + 1.day).to_s
         uri = URI('http://avoindata.prh.fi:80/bis/v1')
-        params = { totalResults: true, maxResults: 1000, resultsFrom: 0 }
-        params[:companyRegistrationTo] = params[:companyRegistrationFrom]
-        params[:companyRegistrationFrom] = (Date.parse(params[:companyRegistrationTo]) - 1.day).to_s
+        params = { totalResults: false, maxResults: 1000, resultsFrom: 0, companyRegistrationFrom: start_date, companyRegistrationTo: end_date}
         uri.query = URI.encode_www_form(params)
       end
     end
