@@ -48,7 +48,7 @@ SELECT COALESCE(terminated.business_id, liquidations.business_id) AS business_id
 FROM liquidations
 FULL JOIN terminated ON liquidations.business_id = terminated.business_id
 )
-SELECT COALESCE(companies.business_id) AS "coalesce",
+SELECT COALESCE(companies.business_id) AS business_id,
        CASE
        WHEN combined.type IS NOT NULL THEN combined.type
        ELSE 'NORMAL'
